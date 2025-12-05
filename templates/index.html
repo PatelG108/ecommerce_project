@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina | AI Recommendations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f3e8ff 0%, #e0c6f5 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .navbar-custom {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .hero-container {
+            height: 40vh;
+            width: 90%;
+            margin: 40px auto 40px auto;
+            border-radius: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            background-color: #333;
+        }
+
+        .hero-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            opacity: 0.9;
+        }
+
+        .product-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(147, 51, 234, 0.1);
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+
+        /* ========== Footer ========== */
+        footer {
+            background: linear-gradient(180deg, #06060a, #0b0d12);
+            color: #b9c0cc;
+            padding: 40px 18px;
+            font-size: 14px;
+            box-shadow: 0 -6px 30px rgba(2, 6, 20, 0.25);
+            margin-top: 0;
+        }
+
+        footer .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        footer .row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 28px;
+            align-items: start;
+        }
+        
+        @media (max-width: 768px) {
+            footer .row { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        footer h6 {
+            color: #fff;
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        footer a { color: #cfe6ff; text-decoration: none; }
+        footer a:hover { color: #fff; text-decoration: underline; }
+        footer ul { padding: 0; margin: 0; list-style: none; }
+        footer ul li { margin: 6px 0; }
+        footer hr { border: none; border-top: 1px solid rgba(255, 255, 255, 0.04); margin: 22px 0; }
+        
+        .store-badge { height: 40px; transition: transform 0.2s; }
+        .store-badge:hover { transform: scale(1.05); }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar-custom sticky top-0 z-50 px-8 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="loadHome()">
+            <div class="w-8 h-8 rounded bg-purple-600 flex items-center justify-center text-white">
+                <i class="fa-solid fa-cube text-sm"></i>
+            </div>
+            <span class="text-xl font-bold text-purple-700">Lumina</span>
+        </div>
+
+        <div class="hidden md:flex gap-8 text-gray-600 font-bold text-sm tracking-wide uppercase">
+            <a href="#" onclick="loadHome()" class="hover:text-purple-600 transition">Home</a>
+            <a href="#products" class="hover:text-purple-600 transition">Catalog</a>
+            <a href="#" class="hover:text-purple-600 transition">About Us</a>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="relative hidden sm:block">
+                <input type="text" id="searchInput" placeholder="Search products..."
+                    class="bg-gray-100 px-4 py-2 rounded-full w-64 text-sm focus:w-72 transition-all outline-none border border-transparent focus:border-purple-300">
+                <button onclick="performSearch()" class="absolute right-3 top-2 text-purple-500 hover:text-purple-700">
+                    <i class="fa-solid fa-search"></i>
+                </button>
+            </div>
+
+            <div id="authButtons" class="flex gap-3 {{ 'hidden' if user_name else '' }}">
+                <button onclick="openModal('login')" class="px-5 py-2 rounded-full border border-purple-300 text-purple-700 hover:bg-purple-50 transition text-sm font-bold">Sign In</button>
+                <button onclick="openModal('signup')" class="px-5 py-2 rounded-full bg-gray-900 text-white hover:bg-black transition text-sm font-bold">Sign Up</button>
+            </div>
+
+            <div id="userProfile" class="flex items-center gap-3 {{ '' if user_name else 'hidden' }}">
+                <span id="userName" class="font-bold text-gray-700 text-sm">Hi, {{ user_name if user_name else 'User' }}</span>
+                <button onclick="logout()" class="text-xs text-red-500 hover:underline">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Video -->
+    <div id="heroSection" class="hero-container flex items-center justify-center text-center transition-all duration-500">
+        <video autoplay muted loop playsinline class="hero-video">
+            <source src="static/video/v.mp4" type="video/mp4">
+        </video>
+        <div class="relative z-10 bg-gray-900 bg-opacity-80 p-10 rounded-2xl max-w-lg shadow-2xl">
+            <h1 class="text-4xl font-extrabold text-white mb-2">Next-Gen Shopping</h1>
+            <p class="text-gray-300 mb-6 text-sm">Powered by AI Recommendations</p>
+            <button onclick="document.getElementById('products').scrollIntoView({behavior: 'smooth'})" class="bg-white text-black px-6 py-2 rounded-full font-bold hover:scale-105 transition">Explore Catalog</button>
+        </div>
+    </div>
+
+    <!-- Product Details View (Detailed Page - Hidden by default) -->
+    <div id="productDetailView" class="hidden container mx-auto px-6 py-10 fade-in">
+        <button onclick="loadHome()" class="mb-6 px-4 py-2 bg-white hover:bg-gray-100 rounded-full text-sm font-bold text-gray-700 shadow transition flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i> Back to Catalog
+        </button>
+
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row min-h-[400px]">
+            <div class="md:w-1/2 bg-gray-50 flex items-center justify-center p-8 relative">
+                <img id="detailImg" src="" alt="Product" class="max-h-80 object-contain mix-blend-multiply transition-transform hover:scale-105 duration-500">
+                <span id="detailDiscount" class="absolute top-6 left-6 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg"></span>
+            </div>
+            <div class="md:w-1/2 p-10 flex flex-col justify-center">
+                <span id="detailBrand" class="text-purple-600 font-bold tracking-wider text-sm uppercase mb-2">Brand</span>
+                <h1 id="detailName" class="text-3xl font-extrabold text-gray-900 mb-4 leading-tight">Product Name</h1>
+                <div class="flex items-center gap-3 mb-6">
+                    <div id="detailStars" class="text-yellow-400 text-lg flex"></div>
+                    <span id="detailRatingText" class="text-gray-500 text-sm font-medium"></span>
+                </div>
+                <div class="flex items-end gap-4 mb-8">
+                    <span id="detailPrice" class="text-4xl font-bold text-gray-900"></span>
+                    <span id="detailOldPrice" class="text-lg text-gray-400 line-through mb-2"></span>
+                </div>
+                <div class="flex gap-4">
+                    <a id="detailLink" href="#" target="_blank" class="flex-1 bg-gray-900 hover:bg-black text-white text-center font-bold py-4 rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-amazon"></i> Buy Now
+                    </a>
+                    <button class="px-6 py-4 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:text-purple-600 transition"><i class="fa-regular fa-heart text-xl"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-16">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 border-l-4 border-purple-500 pl-4">Similar Products</h3>
+            <div id="similarGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="col-span-full text-center py-10"><i class="fa-solid fa-circle-notch spinner text-3xl text-purple-500"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Products Grid -->
+    <div id="products" class="container mx-auto px-6 py-8">
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <h2 id="sectionTitle" class="text-3xl font-extrabold text-gray-800 border-b-4 border-purple-500 inline-block pb-1">Top Products</h2>
+            </div>
+            <span id="resultCount" class="text-gray-500 text-sm">Showing top results</span>
+        </div>
+        <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="col-span-full text-center py-20"><i class="fa-solid fa-circle-notch spinner text-4xl text-purple-500 mb-4"></i><p>Loading Products...</p></div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl w-full max-w-md relative shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-times text-xl"></i></button>
+
+            <!-- Sign In Form -->
+            <div id="loginForm">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2 text-center">Welcome Back</h2>
+                <p class="text-center text-gray-500 text-sm mb-6">Sign in to your account</p>
+                <form onsubmit="handleAuth(event, 'login')">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                        <input type="email" id="loginEmail" required class="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-purple-500 transition" placeholder="you@example.com">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                        <input type="password" id="loginPassword" required class="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-purple-500 transition" placeholder="Enter your password">
+                    </div>
+                    <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition mb-4">Sign In</button>
+                </form>
+                <p class="text-center text-sm text-gray-600">Don't have an account? <a href="#" onclick="toggleAuth('signup')" class="text-purple-600 font-bold hover:underline">Sign Up</a></p>
+            </div>
+
+            <!-- Sign Up Form -->
+            <div id="signupForm" class="hidden">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2 text-center">Create Account</h2>
+                <p class="text-center text-gray-500 text-sm mb-6">Join us today</p>
+                <form onsubmit="handleAuth(event, 'signup')">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Full Name</label>
+                        <input type="text" id="regName" required class="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-purple-500 transition" placeholder="John Doe">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                        <input type="email" id="regEmail" required class="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-purple-500 transition" placeholder="you@example.com">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                        <input type="password" id="regPassword" required class="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-purple-500 transition" placeholder="Create a strong password">
+                    </div>
+                    <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-lg transition mb-4">Register</button>
+                </form>
+                <p class="text-center text-sm text-gray-600">Already have an account? <a href="#" onclick="toggleAuth('login')" class="text-purple-600 font-bold hover:underline">Sign In</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div>
+                    <h6 class="text-white font-bold mb-4">SHOP</h6>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="#" class="hover:text-white">Men</a></li>
+                        <li><a href="#" class="hover:text-white">Women</a></li>
+                        <li><a href="#" class="hover:text-white">Electronics</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h6 class="text-white font-bold mb-4">SUPPORT</h6>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="#" class="hover:text-white">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white">FAQ</a></li>
+                        <li><a href="#" class="hover:text-white">Returns</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h6 class="text-white font-bold mb-4">LEGAL</h6>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="#" class="hover:text-white">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-white">Terms of Use</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h6 class="text-white font-bold mb-4">CONNECT</h6>
+                    <div class="flex gap-4 text-xl text-gray-400 mb-6">
+                        <i class="fa-brands fa-facebook hover:text-white cursor-pointer"></i>
+                        <i class="fa-brands fa-instagram hover:text-white cursor-pointer"></i>
+                        <i class="fa-brands fa-twitter hover:text-white cursor-pointer"></i>
+                    </div>
+                    
+                    <h6 class="text-white font-bold mb-4 text-xs tracking-wider">DOWNLOAD APP</h6>
+                    <div class="flex gap-2">
+                        <a href="#" class="hover:opacity-80">
+                            <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" class="store-badge">
+                        </a>
+                        <a href="#" class="hover:opacity-80">
+                            <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" class="store-badge">
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <hr class="border-gray-800 my-8">
+            <div class="text-center text-gray-500 text-sm">© 2025 Lumina — All Rights Reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        const API = '/api';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchProducts();
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+        });
+
+        // --- Core Functions ---
+        function loadHome() {
+            document.getElementById('heroSection').classList.remove('hidden');
+            document.getElementById('heroSection').classList.add('flex');
+            document.getElementById('products').classList.remove('hidden');
+            document.getElementById('productDetailView').classList.add('hidden');
+            document.getElementById('sectionTitle').innerText = "Top Products";
+            document.getElementById('searchInput').value = '';
+            document.getElementById('resultCount').innerText = "Showing top results";
+            fetchProducts();
+        }
+
+        // --- OPEN DETAIL VIEW ---
+        function openProductDetail(product) {
+            document.getElementById('heroSection').classList.add('hidden');
+            document.getElementById('heroSection').classList.remove('flex');
+            document.getElementById('products').classList.add('hidden');
+            
+            const view = document.getElementById('productDetailView');
+            view.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            document.getElementById('detailImg').src = product.img_link;
+            document.getElementById('detailBrand').innerText = product.brand;
+            document.getElementById('detailName').innerText = product.name;
+            
+            const price = product.prices || 0;
+            const disc = product.discounted_price || price;
+            const off = price > 0 ? Math.round(((price - disc)/price)*100) : 0;
+
+            document.getElementById('detailPrice').innerText = "₹" + disc;
+            document.getElementById('detailOldPrice').innerText = off > 0 ? "₹" + price : "";
+            document.getElementById('detailDiscount').innerText = off > 0 ? `-${off}% OFF` : "";
+            document.getElementById('detailDiscount').style.display = off > 0 ? 'block' : 'none';
+
+            let starsHtml = '';
+            for(let i=1; i<=5; i++) {
+                if(i <= product.rating) starsHtml += '<i class="fa-solid fa-star"></i>';
+                else if(i-0.5 <= product.rating) starsHtml += '<i class="fa-solid fa-star-half-stroke"></i>';
+                else starsHtml += '<i class="fa-regular fa-star text-gray-300"></i>';
+            }
+            document.getElementById('detailStars').innerHTML = starsHtml;
+            document.getElementById('detailRatingText').innerText = `(${product.rating} Rating)`;
+            document.getElementById('detailLink').href = product.p_link;
+
+            fetchSimilar(product.name);
+        }
+
+        async function fetchSimilar(query) {
+            const grid = document.getElementById('similarGrid');
+            grid.innerHTML = '<div class="col-span-full text-center py-10"><i class="fa-solid fa-circle-notch spinner text-3xl text-purple-500"></i></div>';
+            try {
+                const res = await fetch(`${API}/search?q=${encodeURIComponent(query)}`);
+                const products = await res.json();
+                grid.innerHTML = '';
+                if(products.length === 0) grid.innerHTML = '<div class="col-span-full text-center text-gray-500">No similar products found.</div>';
+                else products.slice(0, 20).forEach(p => grid.appendChild(createProductCard(p))); // CHANGED: Now showing 20
+            } catch(e) {}
+        }
+
+        function createProductCard(p) {
+            const el = document.createElement('div');
+            el.className = 'bg-white rounded-2xl p-4 flex flex-col h-full shadow-sm hover:shadow-xl transition-all border border-gray-100 cursor-pointer';
+            el.onclick = () => openProductDetail(p);
+            const price = p.prices || 0;
+            const disc = p.discounted_price || price;
+            const off = price > 0 ? Math.round(((price - disc) / price) * 100) : 0;
+            el.innerHTML = `
+                <div class="h-48 bg-white rounded-xl overflow-hidden mb-4 relative flex items-center justify-center p-4">
+                    <img src="${p.img_link}" class="h-full object-contain mix-blend-multiply" onerror="this.src='https://via.placeholder.com/300?text=No+Image'">
+                    ${off > 0 ? `<span class="absolute top-2 right-2 bg-pink-100 text-pink-700 text-[10px] font-bold px-2 py-1 rounded-full">-${off}%</span>` : ''}
+                </div>
+                <div class="flex-grow">
+                    <div class="text-xs text-purple-600 font-bold mb-1 uppercase tracking-wider">${p.brand}</div>
+                    <h3 class="font-bold text-gray-800 text-md mb-2 line-clamp-2 hover:text-purple-700 transition">${p.name}</h3>
+                    <div class="flex items-center gap-2 mb-2 text-yellow-400 text-xs">${'★'.repeat(Math.round(p.rating))}${'☆'.repeat(5 - Math.round(p.rating))} <span class="text-gray-400">(${p.rating})</span></div>
+                </div>
+                <div class="mt-auto pt-3 border-t border-gray-100 flex justify-between items-center">
+                    <div><span class="text-lg font-bold text-gray-900">₹${disc}</span>${off > 0 ? `<span class="text-xs text-gray-400 line-through ml-2">₹${price}</span>` : ''}</div>
+                    <div class="bg-gray-100 p-2 rounded-full text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition"><i class="fa-solid fa-arrow-right"></i></div>
+                </div>`;
+            return el;
+        }
+
+        async function fetchProducts() {
+            try {
+                const res = await fetch(`${API}/products/top`);
+                const data = await res.json();
+                const grid = document.getElementById('productGrid');
+                grid.innerHTML = '';
+                data.forEach(p => grid.appendChild(createProductCard(p)));
+            } catch (err) {}
+        }
+
+        async function performSearch(queryOverride = null) {
+            document.getElementById('productDetailView').classList.add('hidden');
+            document.getElementById('products').classList.remove('hidden');
+            document.getElementById('heroSection').classList.remove('flex');
+            document.getElementById('heroSection').classList.add('hidden');
+
+            const searchInput = document.getElementById('searchInput');
+            const q = queryOverride || searchInput.value;
+            if (queryOverride) searchInput.value = queryOverride;
+            if (!q) return;
+
+            document.getElementById('productGrid').innerHTML = '<div class="col-span-full text-center py-20"><i class="fa-solid fa-circle-notch spinner text-3xl text-purple-500"></i></div>';
+            
+            try {
+                const res = await fetch(`${API}/search?q=${encodeURIComponent(q)}`);
+                const data = await res.json();
+                const grid = document.getElementById('productGrid');
+                grid.innerHTML = '';
+                if (data.length === 0) grid.innerHTML = `<div class="col-span-full text-center text-gray-500">No results found for "${q}".</div>`;
+                else {
+                    document.getElementById('sectionTitle').innerText = `Results for "${q}"`;
+                    data.forEach(p => grid.appendChild(createProductCard(p)));
+                }
+            } catch (err) {}
+        }
+
+        // Auth Logic
+        function openModal(t) { document.getElementById('authModal').classList.remove('hidden'); document.getElementById('authModal').classList.add('flex'); toggleAuth(t); }
+        function closeModal() { document.getElementById('authModal').classList.add('hidden'); document.getElementById('authModal').classList.remove('flex'); }
+        function toggleAuth(t) { document.getElementById('loginForm').classList.toggle('hidden', t !== 'login'); document.getElementById('signupForm').classList.toggle('hidden', t !== 'signup'); }
+        async function handleAuth(e, type) {
+            e.preventDefault();
+            const payload = {};
+            if(type === 'signup') {
+                payload.name = document.getElementById('regName').value;
+                payload.email = document.getElementById('regEmail').value;
+                payload.password = document.getElementById('regPassword').value;
+            } else {
+                payload.email = document.getElementById('loginEmail').value;
+                payload.password = document.getElementById('loginPassword').value;
+            }
+            try {
+                const res = await fetch(`${API}/${type}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                const data = await res.json();
+                if(data.status === 'success') {
+                    closeModal();
+                    document.getElementById('authButtons').classList.add('hidden');
+                    document.getElementById('userProfile').classList.remove('hidden');
+                    document.getElementById('userProfile').classList.add('flex');
+                    document.getElementById('userName').innerText = "Hi, " + data.user;
+                } else alert(data.message);
+            } catch(err) {}
+        }
+        async function logout() { await fetch(`${API}/logout`, {method: 'POST'}); location.reload(); }
+    </script>
+</body>
+</html>
